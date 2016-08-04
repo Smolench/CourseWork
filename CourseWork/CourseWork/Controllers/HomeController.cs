@@ -7,8 +7,10 @@ using CourseWork.Helpers;
 
 namespace CourseWork.Controllers
 {
+    [RequireHttps]
     public class HomeController : BaseController
     {
+       
         public ActionResult Index()
         {
             return View();

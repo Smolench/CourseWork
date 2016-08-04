@@ -54,9 +54,9 @@ namespace CourseWork
             //   consumerKey: "",
             //   consumerSecret: "");
 
-            //app.UseFacebookAuthentication(
-            //   appId: "",
-            //   appSecret: "");
+            app.UseFacebookAuthentication(
+               appId: "1081755275242356",
+               appSecret: "08eb1412ec6b64a94fc9058c0eea3281");
 
             //app.UseGoogleAuthentication(new GoogleOAuth2AuthenticationOptions()
             //{
