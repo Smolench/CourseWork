@@ -11,6 +11,7 @@ using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin;
 using Microsoft.Owin.Security;
 using CourseWork.Models;
+using System.Net.Mail;
 
 namespace CourseWork
 {
@@ -18,8 +19,17 @@ namespace CourseWork
     {
         public Task SendAsync(IdentityMessage message)
         {
-            // Подключите здесь службу электронной почты для отправки сообщения электронной почты.
-            return Task.FromResult(0);
+            var from = "smolench.t@gmail.com";
+            var password = "stv588716505011997";
+            SmtpClient client = new SmtpClient("smtp.gmail.com", Convert.ToInt32(587));
+            client.DeliveryMethod = SmtpDeliveryMethod.Network;
+            client.Credentials = new System.Net.NetworkCredential(from, password);
+            client.EnableSsl = true;
+            var mail = new MailMessage(from, message.Destination);
+            mail.Subject = message.Subject;
+            mail.Body = message.Body;
+            mail.IsBodyHtml = true;
+            return client.SendMailAsync(mail);            
         }
     }
 

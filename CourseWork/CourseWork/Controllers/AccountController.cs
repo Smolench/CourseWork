@@ -155,20 +155,16 @@ namespace CourseWork.Controllers
                 var result = await UserManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
-                    await SignInManager.SignInAsync(user, isPersistent:false, rememberBrowser:false);
-                    
-                    // Дополнительные сведения о том, как включить подтверждение учетной записи и сброс пароля, см. по адресу: http://go.microsoft.com/fwlink/?LinkID=320771
-                    // Отправка сообщения электронной почты с этой ссылкой
-                    // string code = await UserManager.GenerateEmailConfirmationTokenAsync(user.Id);
-                    // var callbackUrl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);
-                    // await UserManager.SendEmailAsync(user.Id, "Подтверждение учетной записи", "Подтвердите вашу учетную запись, щелкнув <a href=\"" + callbackUrl + "\">здесь</a>");
-
-                    return RedirectToAction("Index", "Home");
+                    //await SignInManager.SignInAsync(user, isPersistent:false, rememberBrowser:false);
+                    var code = await UserManager.GenerateEmailConfirmationTokenAsync(user.Id);
+                    var callbackURL = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: Request.Url.Scheme);
+                    await UserManager.SendEmailAsync(user.Id, "Подтверждение Email", "Для завершения регистрации перейдите по адресу:" +
+                        "<a href=\"" + callbackURL + "\">Подвердить Email</a>");
+                    return View("DisplayConfirmMessage");
+                    //return RedirectToAction("Index", "Home");
                 }
                 AddErrors(result);
             }
-
-            // Появление этого сообщения означает наличие ошибки; повторное отображение формы
             return View(model);
         }
 
