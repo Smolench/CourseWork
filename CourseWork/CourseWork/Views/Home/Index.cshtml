@@ -1,11 +1,39 @@
 ﻿@{
     ViewBag.Title = "Home Page";
+    var culture = System.Threading.Thread.CurrentThread.CurrentUICulture.Name.ToLowerInvariant();
+}
+
+@helper selected(string c, string culture)
+{
+if (c == culture)
+{
+        @:checked="checked"
+    }
 }
 
 <div class="jumbotron">
-    <h1>HELLO</h1>
+    <h1>@Resources.Resources.Hello</h1>
     <p class="lead">ASP.NET is a free web framework for building great Web sites and Web applications using HTML, CSS and JavaScript.</p>
     <p><a href="http://asp.net" class="btn btn-primary btn-lg">Learn more &raquo;</a></p>
+    @using (Html.BeginForm("SetCulture", "Home"))
+    {
+        <fieldset>
+            <div class="control-group">
+                <div class="controls">
+                    <label for="ru-ru">
+                        <input name="culture" id="ru-ru" value="ru-ru" type="radio" @selected("ru-ru", culture) /> Русский
+                    </label>
+                </div>
+            </div>
+            <div class="control-group">
+                <div class="controls">
+                    <label for="en-us">
+                        <input name="culture" id="en-us" value="en-us" type="radio" @selected("en-us", culture) /> English
+                    </label>
+                </div>
+            </div>
+        </fieldset>
+    }
 </div>
 
 <div class="row">
@@ -29,3 +57,15 @@
         <p><a class="btn btn-default" href="http://go.microsoft.com/fwlink/?LinkId=301867">Learn more &raquo;</a></p>
     </div>
 </div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+    <script type="text/javascript">
+        (function ($) {
+            $("input[type = 'radio']").click(function () {
+                $(this).parents("form").submit(); // post form
+            });
+
+        })(jQuery);
+    </script>
+}
