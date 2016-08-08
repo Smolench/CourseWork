@@ -10,7 +10,6 @@ if (c == culture)
         @:checked="checked"
     }
 }
-
 <div class="jumbotron">
     <h1>@Resources.Resources.Hello</h1>
     <p class="lead">ASP.NET is a free web framework for building great Web sites and Web applications using HTML, CSS and JavaScript.</p>
@@ -34,6 +33,10 @@ if (c == culture)
             </div>
         </fieldset>
     }
+
+    <input type="text" id="searchInput" class="form-control" placeholder="Поиск...">
+    <button class="btn btn-default" id="search">Искать</button>
+
 </div>
 
 <div class="row">
@@ -67,5 +70,11 @@ if (c == culture)
             });
 
         })(jQuery);
+        $("#search").click(function () {
+            var url = "/Home/Search";
+            $.post(url, { input: document.getElementById("searchInput").value }, function (data) {
+                alert(data);
+            });
+        })
     </script>
 }

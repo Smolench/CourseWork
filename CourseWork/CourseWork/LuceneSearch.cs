@@ -14,47 +14,57 @@ using CourseWork.Models;
 
 namespace CourseWork
 {
-    public static class LuceneSearch
+    public static class LuceneSearch<T> where T:new()
     {
-        private static string _luceneDir = Path.Combine(HttpContext.Current.Request.PhysicalApplicationPath, "lucene_index");
-        private static FSDirectory _directoryTemp;
-        private static FSDirectory _directory
+        private static string luceneDirComment = Path.Combine(HttpContext.Current.Request.PhysicalApplicationPath, "lucene_index\\comment");
+
+        private static string luceneDirText = Path.Combine(HttpContext.Current.Request.PhysicalApplicationPath, "lucene_index\\text");
+        private static FSDirectory directoryTemp;
+        private static FSDirectory directory
         {
             get
             {
-                if (_directoryTemp == null) _directoryTemp = FSDirectory.Open(new DirectoryInfo(_luceneDir));
-                if (IndexWriter.IsLocked(_directoryTemp)) IndexWriter.Unlock(_directoryTemp);
-                var lockFilePath = Path.Combine(_luceneDir, "write.lock");
-                if (File.Exists(lockFilePath)) File.Delete(lockFilePath);
-                return _directoryTemp;
+                string luceneDir = "";
+                if (typeof(T).Equals(typeof(Comment)))
+                    luceneDir = luceneDirComment;
+                else
+                    luceneDir = luceneDirText;
+                if (directoryTemp == null)
+                    directoryTemp = FSDirectory.Open(new DirectoryInfo(luceneDir));
+                if (IndexWriter.IsLocked(directoryTemp))
+                    IndexWriter.Unlock(directoryTemp);
+                var lockFilePath = Path.Combine(luceneDir, "write.lock");
+                if (File.Exists(lockFilePath))
+                    File.Delete(lockFilePath);
+                return directoryTemp;
             }
         }
 
-        private static void _addToLuceneIndex(Comment comment, IndexWriter writer)
+        private static void AddToLuceneIndex(T content, IndexWriter writer)
         {
             // remove older index entry
-            var searchQuery = new TermQuery(new Term("Id", comment.Id.ToString()));
+            var searchQuery = new TermQuery(new Term("Id", typeof(T).GetProperty("Id").GetValue(content).ToString()));
             writer.DeleteDocuments(searchQuery);
 
             // add new index entry
             var doc = new Document();
 
             // add lucene fields mapped to db fields
-            doc.Add(new Field("Id", comment.Id.ToString(), Field.Store.YES, Field.Index.NOT_ANALYZED));
-            doc.Add(new Field("Description", comment.Description, Field.Store.YES, Field.Index.ANALYZED));
+            doc.Add(new Field("Id", typeof(T).GetProperty("Id").GetValue(content).ToString(), Field.Store.YES, Field.Index.NOT_ANALYZED));
+            doc.Add(new Field("Description", typeof(T).GetProperty("Description").GetValue(content).ToString(), Field.Store.YES, Field.Index.ANALYZED));
 
             // add entry to index
             writer.AddDocument(doc);
         }
 
-        public static void AddUpdateLuceneIndex(IEnumerable<Comment> comments)
+        public static void AddUpdateLuceneIndex(IEnumerable<T> contents)
         {
             // init lucene
             var analyzer = new StandardAnalyzer(Version.LUCENE_30);
-            using (var writer = new IndexWriter(_directory, analyzer, IndexWriter.MaxFieldLength.UNLIMITED))
+            using (var writer = new IndexWriter(directory, analyzer, IndexWriter.MaxFieldLength.UNLIMITED))
             {
                 // add data to lucene search index (replaces older entry if any)
-                foreach (var comment in comments) _addToLuceneIndex(comment, writer);
+                foreach (var content in contents) AddToLuceneIndex(content, writer);
 
                 // close handles
                 analyzer.Close();
@@ -62,16 +72,16 @@ namespace CourseWork
             }
         }
 
-        public static void AddUpdateLuceneIndex(Comment comment)
+        public static void AddUpdateLuceneIndex(T contnent)
         {
-            AddUpdateLuceneIndex(new List<Comment> { comment });
+            AddUpdateLuceneIndex(new List<T> { contnent });
         }
 
         public static void ClearLuceneIndexRecord(int record_id)
         {
             // init lucene
             var analyzer = new StandardAnalyzer(Version.LUCENE_30);
-            using (var writer = new IndexWriter(_directory, analyzer, IndexWriter.MaxFieldLength.UNLIMITED))
+            using (var writer = new IndexWriter(directory, analyzer, IndexWriter.MaxFieldLength.UNLIMITED))
             {
                 // remove older index entry
                 var searchQuery = new TermQuery(new Term("Id", record_id.ToString()));
@@ -88,7 +98,7 @@ namespace CourseWork
             try
             {
                 var analyzer = new StandardAnalyzer(Version.LUCENE_30);
-                using (var writer = new IndexWriter(_directory, analyzer, true, IndexWriter.MaxFieldLength.UNLIMITED))
+                using (var writer = new IndexWriter(directory, analyzer, true, IndexWriter.MaxFieldLength.UNLIMITED))
                 {
                     // remove older index entries
                     writer.DeleteAll();
@@ -108,7 +118,7 @@ namespace CourseWork
         public static void Optimize()
         {
             var analyzer = new StandardAnalyzer(Version.LUCENE_30);
-            using (var writer = new IndexWriter(_directory, analyzer, IndexWriter.MaxFieldLength.UNLIMITED))
+            using (var writer = new IndexWriter(directory, analyzer, IndexWriter.MaxFieldLength.UNLIMITED))
             {
                 analyzer.Close();
                 writer.Optimize();
@@ -116,26 +126,25 @@ namespace CourseWork
             }
         }
 
-        private static Comment _mapLuceneDocumentToData(Document doc)
+        private static T MapLuceneDocumentToData(Document doc)
         {
-            return new Comment
-            {
-                Id = Convert.ToInt32(doc.Get("Id")),
-                Description = doc.Get("Description")
-            };
+            T newMap = new T();
+            typeof(T).GetProperty("Id").SetValue(newMap, Convert.ToInt32(doc.Get("Id")));
+            typeof(T).GetProperty("Description").SetValue(newMap, doc.Get("Description"));
+            return newMap;
         }
 
-        private static IEnumerable<Comment> _mapLuceneToDataList(IEnumerable<Document> hits)
+        private static IEnumerable<T> MapLuceneToDataList(IEnumerable<Document> hits)
         {
-            return hits.Select(_mapLuceneDocumentToData).ToList();
+            return hits.Select(MapLuceneDocumentToData).ToList();
         }
-        private static IEnumerable<Comment> _mapLuceneToDataList(IEnumerable<ScoreDoc> hits,
+        private static IEnumerable<T> MapLuceneToDataList(IEnumerable<ScoreDoc> hits,
             IndexSearcher searcher)
         {
-            return hits.Select(hit => _mapLuceneDocumentToData(searcher.Doc(hit.Doc))).ToList();
+            return hits.Select(hit => MapLuceneDocumentToData(searcher.Doc(hit.Doc))).ToList();
         }
 
-        private static Query parseQuery(string searchQuery, QueryParser parser)
+        private static Query ParseQuery(string searchQuery, QueryParser parser)
         {
             Query query;
             try
@@ -149,14 +158,13 @@ namespace CourseWork
             return query;
         }
 
-        private static IEnumerable<Comment> _search
-    (string searchQuery, string searchField = "")
+        private static IEnumerable<T> Search (string searchQuery, string searchField = "")
         {
             // validation
-            if (string.IsNullOrEmpty(searchQuery.Replace("*", "").Replace("?", ""))) return new List<Comment>();
+            if (string.IsNullOrEmpty(searchQuery.Replace("*", "").Replace("?", ""))) return new List<T>();
 
             // set up lucene searcher
-            using (var searcher = new IndexSearcher(_directory, false))
+            using (var searcher = new IndexSearcher(directory, false))
             {
                 var hits_limit = 1000;
                 var analyzer = new StandardAnalyzer(Version.LUCENE_30);
@@ -165,9 +173,9 @@ namespace CourseWork
                 if (!string.IsNullOrEmpty(searchField))
                 {
                     var parser = new QueryParser(Version.LUCENE_30, searchField, analyzer);
-                    var query = parseQuery(searchQuery, parser);
+                    var query = ParseQuery(searchQuery, parser);
                     var hits = searcher.Search(query, hits_limit).ScoreDocs;
-                    var results = _mapLuceneToDataList(hits, searcher);
+                    var results = MapLuceneToDataList(hits, searcher);
                     analyzer.Close();
                     searcher.Dispose();
                     return results;
@@ -177,10 +185,10 @@ namespace CourseWork
                 {
                     var parser = new MultiFieldQueryParser
                         (Version.LUCENE_30, new[] { "Id", "Description" }, analyzer);
-                    var query = parseQuery(searchQuery, parser);
+                    var query = ParseQuery(searchQuery, parser);
                     var hits = searcher.Search
                     (query, null, hits_limit, Sort.RELEVANCE).ScoreDocs;
-                    var results = _mapLuceneToDataList(hits, searcher);
+                    var results = MapLuceneToDataList(hits, searcher);
                     analyzer.Close();
                     searcher.Dispose();
                     return results;
@@ -189,36 +197,21 @@ namespace CourseWork
 
 
         }
-        public static IEnumerable<Comment> Search(string input, string fieldName = "")
+        public static IEnumerable<T> GlobalSearch(string input, string fieldName = "")
         {
-            if (string.IsNullOrEmpty(input)) return new List<Comment>();
+            if (string.IsNullOrEmpty(input)) return new List<T>();
 
             var terms = input.Trim().Replace("-", " ").Split(' ')
                 .Where(x => !string.IsNullOrEmpty(x)).Select(x => x.Trim() + "*");
             input = string.Join(" ", terms);
 
-            return _search(input, fieldName);
+            return Search(input, fieldName);
         }
 
-        public static IEnumerable<Comment> SearchDefault(string input, string fieldName = "")
+        public static IEnumerable<T> GlobalSearchDefault(string input, string fieldName = "")
         {
-            return string.IsNullOrEmpty(input) ? new List<Comment>() : _search(input, fieldName);
+            return string.IsNullOrEmpty(input) ? new List<T>() : Search(input, fieldName);
         }
 
-        public static IEnumerable<Comment> GetAllIndexRecords()
-        {
-            // validate search index
-            if (!System.IO.Directory.EnumerateFiles(_luceneDir).Any()) return new List<Comment>();
-
-            // set up lucene searcher
-            var searcher = new IndexSearcher(_directory, false);
-            var reader = IndexReader.Open(_directory, false);
-            var docs = new List<Document>();
-            var term = reader.TermDocs();
-            while (term.Next()) docs.Add(searcher.Doc(term.Doc));
-            reader.Dispose();
-            searcher.Dispose();
-            return _mapLuceneToDataList(docs);
-        }
     }
 }

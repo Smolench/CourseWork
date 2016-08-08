@@ -4,6 +4,7 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using CourseWork.Helpers;
+using CourseWork.Models;
 
 namespace CourseWork.Controllers
 {
@@ -13,6 +14,11 @@ namespace CourseWork.Controllers
        
         public ActionResult Index()
         {
+            using (SiteContext db = new SiteContext())
+            {
+                LuceneSearch<Comment>.AddUpdateLuceneIndex(db.Comments.ToList());
+                LuceneSearch<Text>.AddUpdateLuceneIndex(db.Texts.ToList());
+            }
             return View();
         }
 
@@ -28,6 +34,23 @@ namespace CourseWork.Controllers
             ViewBag.Message = "Your contact page.";
 
             return View();
+        }
+
+        public string Search (string input)
+        {
+            string answer = "Посты:\n" + GetSearchResults<Text>(input);
+            return answer + "Комментарии:\n" + GetSearchResults<Comment>(input);
+        }
+
+        public string GetSearchResults<T> (string input) where T:new()
+        {
+            List<T> results = (List<T>)LuceneSearch<T>.GlobalSearch(input);
+            string answer = "";
+            foreach (var result in results)
+            {
+                answer += typeof(T).GetProperty("Description").GetValue(result) + "\n";
+            }
+            return answer;
         }
 
         public ActionResult SetCulture(string culture)
