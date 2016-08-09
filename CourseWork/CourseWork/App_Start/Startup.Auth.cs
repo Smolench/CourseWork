@@ -65,9 +65,7 @@ namespace CourseWork
             "5168FF90AF0207753CCCD9656462A212B859723B", //DigiCert SHA2 High Assurance Server C‎A 
             "B13EC36903F8BF4701D498261A0802EF63642BC3" //DigiCert High Assurance EV Root CA
         })
-            });
-
-            
+            });            
 
             app.UseFacebookAuthentication(
                appId: "1081755275242356",
@@ -78,6 +76,8 @@ namespace CourseWork
                 ClientId = "1061298292374-tr9tbqbji2a1aqtd6nsdvdkto3m6mbci.apps.googleusercontent.com",
                 ClientSecret = "5PkhFfJ83WbC4A-XP5whoQNL"
             });
+
+            app.UseVkontakteAuthentication("5581198", "FPKDCEiunLSDRY9pLufO", "scope=photo");
         }
     }
 }
