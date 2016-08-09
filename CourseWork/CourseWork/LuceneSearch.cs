@@ -43,9 +43,8 @@ namespace CourseWork
         private static void AddToLuceneIndex(T content, IndexWriter writer)
         {
             // remove older index entry
-            var searchQuery = new TermQuery(new Term("Id", typeof(T).GetProperty("Id").GetValue(content).ToString()));
-            writer.DeleteDocuments(searchQuery);
 
+            writer.DeleteAll();
             // add new index entry
             var doc = new Document();
 
