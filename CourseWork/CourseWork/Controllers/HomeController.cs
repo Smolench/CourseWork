@@ -5,13 +5,16 @@ using System.Web;
 using System.Web.Mvc;
 using CourseWork.Helpers;
 using CourseWork.Models;
+using System.Collections;
+using System.IO;
 
 namespace CourseWork.Controllers
 {
     [RequireHttps]
     public class HomeController : BaseController
     {
-       
+        private string TempPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images");
+
         public ActionResult Index()
         {
             using (SiteContext db = new SiteContext())
@@ -67,6 +70,34 @@ namespace CourseWork.Controllers
             }
             Response.Cookies.Add(cookie);
             return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        public ActionResult UploadFiles(IEnumerable files)
+        {
+            foreach (HttpPostedFileBase file in files)
+            {
+                string filePath = Path.Combine(TempPath, file.FileName);
+                System.IO.File.WriteAllBytes(filePath, ReadData(file.InputStream));
+            }
+
+            return Json("All files have been successfully stored.");
+        }
+
+        private byte[] ReadData(Stream stream)
+        {
+            byte[] buffer = new byte[16 * 1024];
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                int read;
+                while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    ms.Write(buffer, 0, read);
+                }
+
+                return ms.ToArray();
+            }
         }
     }
 }
