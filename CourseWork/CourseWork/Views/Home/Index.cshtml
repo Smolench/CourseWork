@@ -1,4 +1,7 @@
 ﻿<style type="text/css">
+    body {
+        background: #e5e5e5;
+    }
     ul.roles {
         height: 100%;
         padding: 5px;
@@ -51,8 +54,11 @@
         background: white;
         border: grey dashed 2px;
         width: 100%;
-        padding: 40px;
-        word-spacing: 10px;
+        min-height: 120px;
+        padding-top: 50px;
+        padding-left: 30px;
+        padding-right: 30px;
+        word-spacing: 5px;
         text-align: center;
         color: black;
         margin-bottom: 20px;
@@ -106,39 +112,43 @@ if (c == culture)
 <h2>Создание страницы сайта</h2>
 <br />
 <div class="row">
-    <div class="col-lg-3 col-md-3">
+    <div class="col-lg-3 col-md-3 ">
         <h4>Загрузка данных</h4>
         <div id="dropZone">
-            <img src="~/Images/icons/image.png" width="50" />
-            <a href="#modalAddVideo" role="button" data-toggle="modal">
-                <img src="~/Images/icons/video.png" width="50" />
-            </a>
-            <a href="#modalAddText" role="button" data-toggle="modal">
-                <img src="~/Images/icons/text.png" width="50" />
-            </a>
-
+            <div class="row">
+                <div class="col-lg-1 col-md-3 col-sm-4 col-xs-3">
+                    <a href="javascript: void(0)"><img src="~/Images/icons/image.png" width="50" id="image" /></a>
+                    <input type="file" id="upload_input" name="upload" style="font-size: 50px; width: 120px; opacity: 0; filter:alpha(opacity: 0);  position: relative; top: -40px;; left: -50px" />
+                </div>
+                <div class="col-lg-4 col-md-4 col-sm-3 col-xs-3" style="margin-left:45px;">
+                    <a href="#modalAddVideo" role="button" data-toggle="modal">
+                    <img src="~/Images/icons/video.png" width="50" />
+                    </a>
+                </div>
+                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                    <a href="#modalAddText" role="button" data-toggle="modal">
+                    <img src="~/Images/icons/text.png" width="50" />
+                    </a>
+                </div>
+            </div>
         </div>
+       
         <h4>Список ваших файлов</h4>
         <ul id="fileList" class="list files"></ul>
+
+        <div id="trash-can" class="list" style="text-align:center; min-height: 150px"><img src="~/Images/icons/trash.png" width="50" /></div>
     </div>
 
     <div class="col-lg-9 col-md-9">
         <h4>&nbsp;Шаблон страницы</h4>
-        <table style="width: 100%; table-layout:fixed">
-            <tr>          
-                <td style="vertical-align: top">
-                    <ul id="templatePart1" class="list roles"></ul>
-                </td>
-                <td style="vertical-align: top">
-                    <ul id="templatePart2" class="list roles"></ul>
-                </td>   
-            </tr>
-            <tr>
-                <td colspan="2" style="vertical-align: top">
-                    <ul id="templatePart3" class="list roles"></ul>
-                </td>
-            </tr>
-        </table>
+        <div style="text-align:center; margin-bottom: 20px;">
+            <label class="radio-inline"><input type="radio" name="optradio" id="template0"><img src="~/Images/icons/0.png" width="50"/></label>
+            <label class="radio-inline"><input type="radio" name="optradio" id="template1"><img src="~/Images/icons/1.png" width="50" /></label>
+            <label class="radio-inline"><input type="radio" name="optradio" id="template2"><img src="~/Images/icons/2.png" width="50" /></label>
+            <label class="radio-inline"><input type="radio" name="optradio" id="template3"><img src="~/Images/icons/3.png" width="50" /></label>
+        </div>
+        <div id="page">
+        </div>
     </div>
 
     <!-- HTML-код модальных окон -->
@@ -188,9 +198,11 @@ if (c == culture)
 @section Scripts {
     @Scripts.Render("~/bundles/jqueryval")
     <script type="text/javascript">
+        var template;
+
         (function ($) {
             $("input[type = 'radio']").click(function () {
-                $(this).parents("form").submit(); // post form
+                $(this).parents("form").submit(); 
             });
         })(jQuery);
 
@@ -201,10 +213,21 @@ if (c == culture)
             });
         })
 
-        $(function () {
-            $("#fileList, #templatePart1, #templatePart2, #templatePart3").sortable({
+        $(function sort() {
+            $("#fileList, #templatePart0, #templatePart1, #templatePart2").sortable({
                 connectWith: ".list"
             }).disableSelection();
+        });
+
+        $(function () {
+            $("#trash-can").droppable({
+                hoverClass: "droppable-hover",
+                drop: function (event, ui) {
+                    var element = ui.draggable.css('position', '');
+                    $(this).append(element);
+                    $(ui.draggable).fadeOut(0);
+                }
+            });
         });
 
         $(function () {
@@ -228,8 +251,9 @@ if (c == culture)
             });
         });
 
+
         $("#save-text").click(function () {
-            $('#fileList').append('<li><textarea class="form-control" style="min-width: 100%" rows="5">' + document.getElementById("text").value + '</textarea></li>');
+            $('#fileList').append('<li><textarea class="form-control" style="min-width: 100%" rows="2">' + document.getElementById("text").value + '</textarea></li>');
             document.getElementById("close-text").click();
         })
 
@@ -239,6 +263,76 @@ if (c == culture)
             link = link.substring(index+1, link.length);
             $('#fileList').append('<li><iframe src="https://www.youtube.com/embed/' + link + '"></iframe></li>');                               
             document.getElementById("close-video").click();
+        })
+
+        function returnCompomentsToFileList() {
+            var page = document.getElementById("page").innerHTML;
+            var startIndex = 0;
+            while (page.indexOf("<li", startIndex) != -1) {
+                endIndex = page.indexOf("</li>", startIndex);
+                $('#fileList').append(page.substring(page.indexOf("<li", startIndex), endIndex + 5));
+                startIndex = endIndex+5;
+            }
+        }
+
+        $("#template0").change(function () {
+            returnCompomentsToFileList();
+            document.getElementById("page").innerHTML = "<table style=\"width: 100%; table-layout:fixed\">" +
+                "<tr>" +
+                "<td style=\"vertical-align: top\"><ul id=\"templatePart0\" class=\"list roles\"></ul></td>" +
+                "</tr>" +
+                "</table>";
+            template = 0;
+            $("#fileList, #templatePart0").sortable({
+                connectWith: ".list"
+            }).disableSelection();
+        })
+
+        $("#template1").change(function () {
+            returnCompomentsToFileList();
+            document.getElementById("page").innerHTML = "<table style=\"width: 100%; table-layout:fixed\">" +
+                "<tr>" +
+                "<td style=\"vertical-align: top\"><ul id=\"templatePart0\" class=\"list roles\"></ul></td>" +
+                "<td style=\"vertical-align: top\"><ul id=\"templatePart1\" class=\"list roles\"></ul></td>" +
+                "</tr>" +
+                "</table>";
+            template = 1;
+            $("#fileList, #templatePart0, #templatePart1").sortable({
+                connectWith: ".list"
+            }).disableSelection();
+        })
+
+
+        $("#template2").change(function () {
+            returnCompomentsToFileList();
+            document.getElementById("page").innerHTML = "<table style=\"width: 100%; table-layout:fixed\">" + 
+                "<tr>" +
+                "<td style=\"vertical-align: top\"><ul id=\"templatePart0\" class=\"list roles\"></ul></td>" + 
+                "<td style=\"vertical-align: top\"><ul id=\"templatePart1\" class=\"list roles\"></ul></td>" +
+                "</tr>"+
+                "<tr>" +
+                "<td colspan=\"2\" style=\"vertical-align: top\"><ul id=\"templatePart2\" class=\"list roles\"></ul></td>"+
+                "</tr></table>"
+            template = 2;
+            $("#fileList, #templatePart0, #templatePart1, #templatePart2").sortable({
+                connectWith: ".list"
+            }).disableSelection();
+        })
+
+        $("#template3").change(function () {
+            returnCompomentsToFileList();
+            document.getElementById("page").innerHTML = "<table style=\"width: 100%; table-layout:fixed\">" +
+                "<tr>" +
+                "<td colspan=\"2\" style=\"vertical-align: top\"><ul id=\"templatePart0\" class=\"list roles\"></ul></td>" +
+                "</tr>" +
+                "<tr>" +
+                "<td style=\"vertical-align: top\"><ul id=\"templatePart1\" class=\"list roles\"></ul></td>" +
+                "<td style=\"vertical-align: top\"><ul id=\"templatePart2\" class=\"list roles\"></ul></td>" +
+                "</tr></table>"
+            template = 3;
+            $("#fileList, #templatePart0, #templatePart1, #templatePart2").sortable({
+                connectWith: ".list"
+            }).disableSelection();
         })
 </script>
 }
